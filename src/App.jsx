@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createUserWithEmailAndPassword,onAuthStateChanged,sendPasswordResetEmail,signInWithEmailAndPassword,signOut,updateProfile } from "firebase/auth";
 import { addDoc,collection,deleteDoc,doc,getDoc,onSnapshot,orderBy,query,setDoc,updateDoc } from "firebase/firestore";
 import { Activity,Wallet,PlusCircle,BarChart3,Target,LogOut,Download,Trash2,Edit3,Eye,EyeOff,ShieldCheck,TrendingUp,TrendingDown,ArrowDownRight,ArrowUpRight,Layers,Settings as SettingsIcon,CalendarDays } from "lucide-react";
@@ -113,7 +113,7 @@ export default function App(){
  const days={};activeOps.forEach(o=>days[o.date]=(days[o.date]||0)+o.result);
  const analyticsMarkets=market==="Todos"?["B3","Internacional","Forex"]:[activeMarket];
  const analytics=analyticsMarkets.map(m=>{const currency=m==="B3"?"BRL":"USD",marketOps=enriched.filter(o=>o.market===m),marketFlows=flows.filter(f=>f.market===m),capital=Number(settings[marketKey(m)]?.capital??(m==="B3"?(settings.main?.capital??1000):0));return {market:m,currency,operations:marketOps,series:buildEquitySeries(marketOps,marketFlows,capital)}});
- const setupRows=Object.entries(enriched.reduce((acc,o)=>{const key=(o.setup||"Sem setup").trim();(acc[key]??={result:0,count:0,currency:o.currency,mixed:false}).result+=o.result;acc[key].count++;if(acc[key].currency!==o.currency)acc[key].mixed=true;return acc},{})).sort((a,b)=>b[1].result-a[1].result);
+ const setupRows=Object.entries(enriched.reduce((acc,o)=>{const setup=(o.setup||"Sem setup").trim(),key=setup+" · "+o.currency;(acc[key]??={result:0,count:0,currency:o.currency}).result+=o.result;acc[key].count++;return acc},{})).sort((a,b)=>b[1].result-a[1].result);
  const assetRows=Object.entries(enriched.reduce((acc,o)=>{const key=o.assetName+" · "+o.currency;(acc[key]??={result:0,count:0,currency:o.currency}).result+=o.result;acc[key].count++;return acc},{})).sort((a,b)=>b[1].result-a[1].result);
 
  const candleMarkets=market==="Todos"?["B3","Internacional","Forex"]:[activeMarket];
