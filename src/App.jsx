@@ -55,7 +55,7 @@ function buildDailyCandles(operations,flows,capital){
   const open=Number(capital||0)+priorOps+priorFlows;
   let balance=open,high=open,low=open;
   list.forEach(o=>{balance+=Number(o.result||0);high=Math.max(high,balance);low=Math.min(low,balance)});
-  const points=list.every(o=>o.assetName===list[0].assetName)&&list.every(o=>Number.isFinite(Number(o.points)))?list.reduce((sum,o)=>sum+Number(o.points),0):null;
+  const points=list.every(o=>o.assetName===list[0].assetName)&&list.every(o=>o.points!==null&&o.points!==undefined&&Number.isFinite(Number(o.points)))?list.reduce((sum,o)=>sum+Number(o.points),0):null;
   return {date,open,close:balance,high,low,result:balance-open,points,operations:list,count:list.length};
  });
 }
