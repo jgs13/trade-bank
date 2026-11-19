@@ -155,21 +155,21 @@ export default function App(){
   const rows=ops.filter(o=>opMarket(o)===m&&o.date>=startKey&&o.date<=endKey).map(o=>({...o,...calc(o,getAsset(o))})).sort((a,b)=>(a.date+" "+(a.time||"")).localeCompare(b.date+" "+(b.time||"")));
   const result=rows.reduce((sum,o)=>sum+o.result,0),winsCount=rows.filter(o=>o.result>0).length,hit=rows.length?winsCount/rows.length*100:0;
   const sameAsset=rows.length>0&&new Set(rows.map(o=>o.assetName)).size===1,points=sameAsset&&rows.every(o=>o.points!==null&&o.points!==undefined&&Number.isFinite(Number(o.points)))?rows.reduce((sum,o)=>sum+Number(o.points),0):null;
-  const capital=Number(settings[marketKey(m)]?.capital??(m==="B3"?(settings.main?.capital??1000):0)),pct=capital>0?result/capital*100:0;
+  const capital=Number(settings[marketKey(m)]?.capital??(m==="B3"?(settings.main?.capital??1000):0)),pct=capital>0?result/capital*100:null;
   const canvas=document.createElement("canvas");canvas.width=1080;canvas.height=1920;const ctx=canvas.getContext("2d");
   ctx.fillStyle="#081321";ctx.fillRect(0,0,1080,1920);const grad=ctx.createLinearGradient(0,0,1080,1920);grad.addColorStop(0,"#142b45");grad.addColorStop(1,"#081321");ctx.fillStyle=grad;ctx.fillRect(0,0,1080,1920);
   ctx.fillStyle="#67c9ff";ctx.font="700 34px Arial";ctx.fillText("TRADE BANK",72,112);ctx.fillStyle="#fff";ctx.font="700 62px Arial";ctx.fillText("Resumo de performance",72,205);
   ctx.fillStyle="#9fb2c9";ctx.font="32px Arial";ctx.fillText(m+" · "+(sharePeriod==="day"?"Hoje":sharePeriod==="week"?"Esta semana":"Este mês"),72,270);
   ctx.fillStyle="#fff";ctx.font="28px Arial";ctx.fillText(start.toLocaleDateString("pt-BR")+" até "+now.toLocaleDateString("pt-BR"),72,326);
-  ctx.fillStyle="#13263b";ctx.beginPath();ctx.roundRect(56,390,968,390,28);ctx.fill();ctx.fillStyle=result>=0?"#4adea4":"#fb7185";ctx.font="700 76px Arial";ctx.fillText(shareHideMoney?pct.toFixed(2).replace(".",",")+"%":money(result,currency),92,520);
-  ctx.fillStyle="#a9bbd0";ctx.font="30px Arial";ctx.fillText(shareHideMoney?"Variação sobre o capital inicial":"Resultado líquido do período",92,575);
+  ctx.fillStyle="#13263b";ctx.beginPath();ctx.roundRect(56,390,968,390,28);ctx.fill();ctx.fillStyle=result>=0?"#4adea4":"#fb7185";ctx.font="700 76px Arial";ctx.fillText(shareHideMoney?(pct!==null?pct.toFixed(2).replace(".",",")+"%":points!==null?points.toLocaleString("pt-BR")+" pts":"—"):money(result,currency),92,520);
+  ctx.fillStyle="#a9bbd0";ctx.font="30px Arial";ctx.fillText(shareHideMoney?(pct!==null?"Variação sobre o capital inicial":points!==null?"Pontos líquidos":"Cadastre o capital inicial para exibir percentual"):"Resultado líquido do período",92,575);
   ctx.fillStyle="#fff";ctx.font="700 42px Arial";ctx.fillText(hit.toFixed(1).replace(".",",")+"%",92,680);ctx.fillStyle="#a9bbd0";ctx.font="26px Arial";ctx.fillText("Taxa de acerto",92,725);
   ctx.fillStyle="#fff";ctx.font="700 42px Arial";ctx.fillText(String(rows.length),560,680);ctx.fillStyle="#a9bbd0";ctx.font="26px Arial";ctx.fillText("Operações",560,725);
-  ctx.fillStyle="#13263b";ctx.beginPath();ctx.roundRect(56,830,968,720,28);ctx.fill();ctx.fillStyle="#fff";ctx.font="700 34px Arial";ctx.fillText("Curva de resultado",92,900);
-  let running=0;const curve=rows.map(o=>running+=o.result),values=curve.length?curve:[0],min=Math.min(0,...values),max=Math.max(1,...values),span=max-min||1,left=112,right=970,top=1000,bottom=1435;
+  ctx.fillStyle="#13263b";ctx.beginPath();ctx.roundRect(56,830,968,720,28);ctx.fill();ctx.fillStyle="#fff";ctx.font="700 34px Arial";ctx.fillText("Curva de capital",92,900);
+  let running=0;const curve=rows.map(o=>capital+(running+=o.result)),values=curve.length?curve:[capital],min=Math.min(capital,...values),max=Math.max(capital,...values),span=max-min||1,left=112,right=970,top=1000,bottom=1435;
   ctx.strokeStyle="#31465f";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(left,bottom);ctx.lineTo(right,bottom);ctx.stroke();
   if(values.length>1){ctx.strokeStyle=result>=0?"#4adea4":"#fb7185";ctx.lineWidth=8;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();values.forEach((v,i)=>{const x=left+i*(right-left)/(values.length-1),y=bottom-(v-min)/span*(bottom-top);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.stroke()}else{ctx.fillStyle="#9fb2c9";ctx.font="28px Arial";ctx.fillText("Sem operações neste período",left,1180)}
-  ctx.fillStyle="#a9bbd0";ctx.font="25px Arial";ctx.fillText(shareHideMoney?(points===null?"Variação em percentual":"Pontos: "+points.toLocaleString("pt-BR")):"Acumulado: "+money(result,currency),92,1490);
+  ctx.fillStyle="#a9bbd0";ctx.font="25px Arial";if(!shareHideMoney)ctx.fillText("Resultado acumulado: "+money(result,currency),92,1490);else if(points!==null)ctx.fillText("Pontos líquidos: "+points.toLocaleString("pt-BR"),92,1490);
   if(!shareHideMoney&&capital>0)ctx.fillText("Variação sobre capital: "+pct.toFixed(2).replace(".",",")+"%",92,1540);
   ctx.fillStyle="#6f849e";ctx.font="24px Arial";ctx.fillText("Gerado no aparelho · Trade Bank",72,1810);
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));if(!blob){Q("Não foi possível gerar a imagem.");return}
