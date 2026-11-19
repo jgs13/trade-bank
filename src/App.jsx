@@ -86,7 +86,9 @@ function buildEquitySeries(operations,flows,capital){
  dates.forEach(date=>{balance+=byDate[date].flows+byDate[date].trades;peak=Math.max(peak,balance);const dd=peak-balance;maxDrawdown=Math.max(maxDrawdown,dd);currentDrawdown=dd;points.push({date,balance,drawdown:dd})});
  return {points,maxDrawdown,currentDrawdown,peak,balance};
 }
-function lastBusinessDayOfNextMonth(month){const [year,mm]=month.split("-").map(Number);const d=new Date(year,mm+1,0);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()-1);return d.toLocaleDateString("pt-BR");}
+function easterSunday(year){const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;return new Date(year,month-1,day);}
+function isBrazilBankHoliday(date){const year=date.getFullYear(),key=String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0"),fixed=["01-01","04-21","05-01","09-07","10-12","11-02","11-15","11-20","12-25"];if(fixed.includes(key))return true;const easter=easterSunday(year),offsets=[-48,-47,-2,60];return offsets.some(offset=>{const d=new Date(easter);d.setDate(d.getDate()+offset);return d.getFullYear()===year&&d.getMonth()===date.getMonth()&&d.getDate()===date.getDate()});}
+function lastBusinessDayOfNextMonth(month){const [year,mm]=month.split("-").map(Number);const d=new Date(year,mm+1,0);while(d.getDay()===0||d.getDay()===6||isBrazilBankHoliday(d))d.setDate(d.getDate()-1);return d.toLocaleDateString("pt-BR");}
 function buildTaxMonths(operations,taxRate,withholdingRate){
  const current=today().slice(0,7),dates=operations.map(o=>o.date).filter(Boolean).sort();
  const start=dates.length?dates[0].slice(0,7):current,[sy,sm]=start.split("-").map(Number),[ey,em]=current.split("-").map(Number);
