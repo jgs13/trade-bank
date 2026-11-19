@@ -174,3 +174,9 @@ html[data-theme="light"] .risk-results div{background:#f8fafc}
 html[data-theme="light"] .risk-results span{color:#64748b}
 html[data-theme="light"] .risk-results b{color:#172033}
 @media(max-width:700px){.error-checks{grid-template-columns:1fr}.bar-row{grid-template-columns:58px minmax(35px,1fr) minmax(78px,auto);gap:6px}.bar-row>b{font-size:9px}.trash-row{align-items:flex-start}.panel-actions{width:100%}}
+
+.csv-row-preview{display:grid;gap:5px;padding:9px;background:#101f32;border-radius:8px}
+.csv-row-preview small{font-size:10px;color:#b7c8dc}
+.custom-errors .icon-btn{font-size:10px;padding:5px 8px}
+html[data-theme="light"] .csv-row-preview{background:#edf4fb}
+html[data-theme="light"] .csv-row-preview small{color:#475569}
