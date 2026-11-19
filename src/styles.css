@@ -115,3 +115,62 @@ html[data-theme="light"] .negative{color:#be123c!important}
 html[data-theme="light"] .candle-wick.up,html[data-theme="light"] .candle-body.up{stroke:#15803d;fill:#15803d}
 html[data-theme="light"] .candle-wick.down,html[data-theme="light"] .candle-body.down{stroke:#be123c;fill:#be123c}
 html[data-theme="light"] .equity-line{stroke:#0284c7}
+
+
+/* Diário emocional, análises, risco, importação e lixeira */
+.error-checks{border:1px solid #2a3b54;border-radius:9px;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.error-checks legend{padding:0 6px;color:#9fb0c5;font-size:11px;font-weight:700}
+.error-checks label{display:flex;align-items:center;gap:8px;color:#c5d1e0;font-size:11px}
+.error-checks input{width:16px;height:16px;accent-color:#38bdf8}
+.daily-counter{padding:12px;border:1px solid #2b526b;border-radius:9px;background:#10283b;color:#b9dff5;font-size:12px}
+.daily-counter b{display:block;margin-top:5px}
+.daily-counter.limit-reached{background:#481f2a;border-color:#a83b50;color:#ff9aa9}
+.panel-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.csv-upload{position:relative;overflow:hidden;cursor:pointer;display:inline-flex;align-items:center}
+.csv-upload input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.csv-preview{margin:14px 0;padding:13px;border:1px solid #36506e;border-radius:10px;background:#0b192a;display:grid;gap:8px}
+.csv-preview p,.csv-preview small{margin:0;color:#a8b8cc;font-size:11px}
+.csv-preview small{color:#fb9aa8}
+.advanced-market{border-top:1px solid #293951;padding-top:14px;margin-top:14px}
+.advanced-market h3{font:700 14px Manrope;color:#dcecff;margin:0 0 12px}
+.advanced-market h4{font:700 11px Manrope;color:#a9bdd4;margin:17px 0 8px}
+.bar-chart{display:grid;gap:8px}
+.bar-row{display:grid;grid-template-columns:76px minmax(50px,1fr) minmax(95px,auto);align-items:center;gap:9px;font-size:10px}
+.bar-row>span{color:#9aabc0}
+.bar-row>b{text-align:right;font-size:10px;white-space:nowrap}
+.bar-track{height:9px;border-radius:8px;background:#24344a;overflow:hidden}
+.bar-track i{display:block;height:100%;border-radius:8px;min-width:2px}
+.bar-positive{background:#22c55e}
+.bar-negative{background:#ef4444}
+.most-expensive-error{background:#481f2a;border:1px solid #a83b50;border-radius:8px;padding:9px;margin:4px 0}
+.most-expensive-error span,.most-expensive-error b{color:#ff9aa9!important}
+.custom-errors{border:1px solid #2a3b54;border-radius:9px;padding:12px;display:grid;gap:9px;color:#aab8cb;font-size:11px}
+.custom-errors>div:not(.custom-error-add){display:flex;justify-content:space-between;align-items:center;color:#d5e1ef}
+.custom-error-add{display:flex;gap:8px}
+.custom-error-add input{flex:1;min-width:0;background:#0b1627;border:1px solid #2a3b54;border-radius:8px;color:#edf4ff;padding:10px}
+.risk-results{margin:14px 0}
+.risk-results div{display:grid;gap:7px;padding:12px;background:#0c192a}
+.risk-results span{font-size:10px;color:#8796ab}
+.risk-results b{font-size:14px;color:#e7edf7}
+.trash-row{gap:12px;align-items:center}
+.trash-row>span{display:grid;gap:4px}
+.trash-row small{display:block;color:#8796ab;font-size:10px}
+html[data-theme="light"] .error-checks,html[data-theme="light"] .custom-errors{border-color:#d5dfeb}
+html[data-theme="light"] .error-checks legend,html[data-theme="light"] .custom-errors{color:#52647d}
+html[data-theme="light"] .error-checks label,html[data-theme="light"] .custom-errors>div:not(.custom-error-add){color:#334155}
+html[data-theme="light"] .daily-counter{background:#e0f2fe;border-color:#7dd3fc;color:#075985}
+html[data-theme="light"] .daily-counter.limit-reached{background:#ffe4e6;border-color:#fb7185;color:#9f1239}
+html[data-theme="light"] .csv-preview{background:#f8fafc;border-color:#cbd5e1}
+html[data-theme="light"] .csv-preview p{color:#475569}
+html[data-theme="light"] .advanced-market{border-color:#dbe4ef}
+html[data-theme="light"] .advanced-market h3{color:#172033}
+html[data-theme="light"] .advanced-market h4{color:#475569}
+html[data-theme="light"] .bar-row>span{color:#64748b}
+html[data-theme="light"] .bar-track{background:#e2e8f0}
+html[data-theme="light"] .most-expensive-error{background:#ffe4e6;border-color:#fb7185}
+html[data-theme="light"] .most-expensive-error span,html[data-theme="light"] .most-expensive-error b{color:#9f1239!important}
+html[data-theme="light"] .custom-error-add input{background:#f8fafc;border-color:#cbd5e1;color:#172033}
+html[data-theme="light"] .risk-results div{background:#f8fafc}
+html[data-theme="light"] .risk-results span{color:#64748b}
+html[data-theme="light"] .risk-results b{color:#172033}
+@media(max-width:700px){.error-checks{grid-template-columns:1fr}.bar-row{grid-template-columns:58px minmax(35px,1fr) minmax(78px,auto);gap:6px}.bar-row>b{font-size:9px}.trash-row{align-items:flex-start}.panel-actions{width:100%}}
