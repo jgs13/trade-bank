@@ -109,3 +109,9 @@ html[data-theme="light"] .sign-switch .sign-loss.selected{background:#ffe4e6;col
 html[data-theme="light"] .sidebar nav button svg{color:inherit}
 @media(max-width:700px){.tax-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tax-summary{grid-template-columns:1fr}.tax-month-row{grid-template-columns:70px 1fr auto}.tax-month-row span:nth-of-type(2){display:none}html[data-theme="light"] .sidebar{background:#fff;border-top-color:#d8e1ed}}
 @media(max-width:380px){.tax-grid{grid-template-columns:1fr}.tax-month-row{grid-template-columns:1fr 1fr}.tax-month-row strong{grid-column:2}}
+
+html[data-theme="light"] .positive{color:#15803d!important}
+html[data-theme="light"] .negative{color:#be123c!important}
+html[data-theme="light"] .candle-wick.up,html[data-theme="light"] .candle-body.up{stroke:#15803d;fill:#15803d}
+html[data-theme="light"] .candle-wick.down,html[data-theme="light"] .candle-body.down{stroke:#be123c;fill:#be123c}
+html[data-theme="light"] .equity-line{stroke:#0284c7}
