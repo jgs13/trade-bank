@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "Trade Bank",
+  "short_name": "Trade Bank",
+  "description": "Gerenciamento de banca e operações de Day Trade",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#101827",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
