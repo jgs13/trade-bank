@@ -1,188 +1,65 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail,
-  signInWithEmailAndPassword, signOut, updateProfile
-} from "firebase/auth";
-import {
-  addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, setDoc
-} from "firebase/firestore";
-import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis
-} from "recharts";
-import {
-  Activity, ArrowDownRight, ArrowUpRight, BarChart3, Download, LogOut,
-  PlusCircle, ShieldCheck, Target, Trash2, TrendingDown, TrendingUp, Wallet, Eye, EyeOff
-} from "lucide-react";
-import { auth, db } from "./firebase";
-
-const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
-const dateToday = () => new Date().toLocaleDateString("en-CA");
-const operationResult = (op, pointValue) => {
-  const points = op.side === "compra" ? Number(op.exit) - Number(op.entry) : Number(op.entry) - Number(op.exit);
-  return points * Number(op.contracts) * Number(pointValue);
-};
-const friendlyError = (error) => ({
-  "auth/email-already-in-use": "Este e-mail já está cadastrado.",
-  "auth/invalid-email": "E-mail inválido.",
-  "auth/weak-password": "A senha precisa ter pelo menos 6 caracteres.",
-  "auth/invalid-credential": "E-mail ou senha incorretos.",
-  "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco e tente novamente."
-}[error.code] || error.message || "Ocorreu um erro. Tente novamente.");
-
-function AuthScreen() {
-  const [mode, setMode] = useState("login");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  async function submit(event) {
-    event.preventDefault(); setMessage(""); setBusy(true);
-    try {
-      if (mode === "register") {
-        const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        if (name.trim()) await updateProfile(result.user, { displayName: name.trim() });
-      } else if (mode === "reset") {
-        await sendPasswordResetEmail(auth, email.trim());
-        setMessage("Enviamos um link de recuperação para seu e-mail.");
-        return;
-      } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
-      }
-    } catch (error) { setMessage(friendlyError(error)); }
-    finally { setBusy(false); }
-  }
-  return <main className="auth-wrap">
-    <div className="auth-card">
-      <div className="brand-mark"><Activity size={25}/></div>
-      <p className="eyebrow">CONTROLE DE PERFORMANCE</p>
-      <h1>Trade Bank <span>WIN</span></h1>
-      <p className="muted">Sua banca de day trade organizada.</p>
-      <div className="auth-tabs">
-        <button className={mode === "login" ? "selected" : ""} onClick={() => {setMode("login");setMessage("");}}>Entrar</button>
-        <button className={mode === "register" ? "selected" : ""} onClick={() => {setMode("register");setMessage("");}}>Criar conta</button>
-      </div>
-      <form onSubmit={submit} className="form-stack">
-        {mode === "register" && <label>Nome<input value={name} onChange={e=>setName(e.target.value)} placeholder="Seu nome" required /></label>}
-        <label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@email.com" required /></label>
-        {mode !== "reset" && <label>Senha<div className="password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mínimo de 6 caracteres" minLength="6" required /><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} title={showPassword ? "Ocultar senha" : "Mostrar senha"}>{showPassword ? <EyeOff size={19}/> : <Eye size={19}/>}</button></div></label>}
-        {message && <p className="notice">{message}</p>}
-        <button className="primary-btn" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar minha conta" : mode === "reset" ? "Enviar recuperação" : "Entrar"}</button>
-      </form>
-      {mode === "login" && <button className="text-btn" onClick={()=>{setMode("reset");setMessage("");}}>Esqueci minha senha</button>}
-      {mode === "reset" && <button className="text-btn" onClick={()=>{setMode("login");setMessage("");}}>Voltar ao login</button>}
-      <p className="security-note"><ShieldCheck size={15}/> Seus dados são privados e vinculados à sua conta.</p>
-    </div>
-  </main>;
-}
-
-function StatCard({label,value,icon:Icon,tone="neutral",detail}) {
-  return <div className="stat-card"><div className="stat-top"><span>{label}</span><span className={"stat-icon "+tone}><Icon size={18}/></span></div><strong>{value}</strong>{detail && <small>{detail}</small>}</div>;
-}
-
-export default function App() {
-  const [user,setUser] = useState(undefined);
-  const [ops,setOps] = useState([]);
-  const [settings,setSettings] = useState({capital:1000, pointValue:0.2, dailyStop:200, dailyGoal:200});
-  const [tab,setTab] = useState("painel");
-  const [loading,setLoading] = useState(true);
-  const [saving,setSaving] = useState(false);
-  const [notice,setNotice] = useState("");
-  const [form,setForm] = useState({date:dateToday(),side:"compra",contracts:1,entry:"",exit:"",notes:""});
-  useEffect(()=>onAuthStateChanged(auth, current=>{setUser(current);setLoading(false);}),[]);
-  useEffect(()=>{
-    if (!user) {setOps([]);return;}
-    const base=doc(db,"users",user.uid,"settings","main");
-    getDoc(base).then(s=>{if(s.exists())setSettings(v=>({...v,...s.data()}));}).catch(e=>setNotice(friendlyError(e)));
-    return onSnapshot(query(collection(db,"users",user.uid,"operations"),orderBy("date","desc")),snap=>{
-      setOps(snap.docs.map(d=>({id:d.id,...d.data()})));
-    },e=>setNotice(friendlyError(e)));
-  },[user]);
-  const sorted = useMemo(()=>[...ops].sort((a,b)=>a.date.localeCompare(b.date) || (a.createdAt||0)-(b.createdAt||0)),[ops]);
-  const enriched = useMemo(()=>sorted.map(op=>({...op,result:operationResult(op,settings.pointValue)})),[sorted,settings.pointValue]);
-  const total = enriched.reduce((sum,op)=>sum+op.result,0);
-  const todayOps = enriched.filter(op=>op.date===dateToday());
-  const todayResult = todayOps.reduce((sum,op)=>sum+op.result,0);
-  const wins = enriched.filter(op=>op.result>0);
-  const losses = enriched.filter(op=>op.result<0);
-  const grossWins = wins.reduce((s,o)=>s+o.result,0);
-  const grossLosses = Math.abs(losses.reduce((s,o)=>s+o.result,0));
-  const payoff = losses.length ? (grossWins/wins.length)/(grossLosses/losses.length) : 0;
-  const days = Object.values(enriched.reduce((acc,op)=>{acc[op.date]=(acc[op.date]||0)+op.result;return acc;},{}));
-  const chartData = [{date:"Início",balance:Number(settings.capital)||0},...(()=>{let balance=Number(settings.capital)||0;return enriched.map(op=>{balance+=op.result;return {date:op.date.slice(5).split("-").reverse().join("/"),balance};});})()];
-  const drawdown = useMemo(()=>{let peak=Number(settings.capital)||0,dd=0;for(const p of chartData){peak=Math.max(peak,p.balance);dd=Math.max(dd,peak-p.balance);}return dd;},[chartData,settings.capital]);
-  const dailyStatus = Number(settings.dailyStop)>0 && todayResult<=-Number(settings.dailyStop) ? "Você atingiu seu stop diário." : Number(settings.dailyGoal)>0 && todayResult>=Number(settings.dailyGoal) ? "Você atingiu sua meta diária." : "";
-  async function saveOperation(event) {
-    event.preventDefault();setNotice("");
-    if (!Number.isFinite(Number(form.entry)) || !Number.isFinite(Number(form.exit)) || Number(form.contracts)<1) {setNotice("Confira entrada, saída e quantidade de contratos.");return;}
-    setSaving(true);
-    try {
-      await addDoc(collection(db,"users",user.uid,"operations"),{...form,contracts:Number(form.contracts),entry:Number(form.entry),exit:Number(form.exit),createdAt:Date.now()});
-      setForm(v=>({...v,date:dateToday(),entry:"",exit:"",notes:""}));setNotice("Operação salva.");
-    } catch(e){setNotice(friendlyError(e));}
-    finally{setSaving(false);}
-  }
-  async function saveSettings(event) {
-    event.preventDefault();setSaving(true);setNotice("");
-    try {await setDoc(doc(db,"users",user.uid,"settings","main"),{capital:Number(settings.capital),pointValue:Number(settings.pointValue),dailyStop:Number(settings.dailyStop),dailyGoal:Number(settings.dailyGoal)},{merge:true});setNotice("Configurações salvas.");}
-    catch(e){setNotice(friendlyError(e));} finally{setSaving(false);}
-  }
-  async function removeOperation(id) {
-    if(!window.confirm("Excluir esta operação?"))return;
-    try{await deleteDoc(doc(db,"users",user.uid,"operations",id));setNotice("Operação excluída.");}catch(e){setNotice(friendlyError(e));}
-  }
-  function exportCSV(){
-    const rows=[["Data","Direção","Contratos","Entrada","Saída","Resultado pontos","Resultado R$","Observação"],...enriched.map(o=>[o.date,o.side,o.contracts,o.entry,o.exit,o.side==="compra"?o.exit-o.entry:o.entry-o.exit,o.result,o.notes||""])];
-    const csv="\uFEFF"+rows.map(r=>r.map(v=>'"'+String(v??"").replaceAll('"','""')+'"').join(";")).join("\n");
-    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));const a=document.createElement("a");a.href=url;a.download="trade-bank-operacoes.csv";a.click();URL.revokeObjectURL(url);
-  }
-  if(loading)return <div className="loading-screen">Carregando Trade Bank...</div>;
-  if(!user)return <AuthScreen/>;
-  return <div className="app-shell">
-    <aside className="sidebar">
-      <div className="sidebar-brand"><div className="brand-mark small"><Activity size={20}/></div><div><b>Trade Bank</b><small>WIN · B3</small></div></div>
-      <nav>
-        {[["painel",Wallet,"Painel"],["operacoes",PlusCircle,"Operações"],["estatisticas",BarChart3,"Estatísticas"],["config",Target,"Risco e banca"]].map(([id,Icon,label])=><button key={id} className={tab===id?"nav-active":""} onClick={()=>setTab(id)}><Icon size={18}/>{label}</button>)}
-      </nav>
-      <div className="sidebar-user"><span>{user.displayName||user.email}</span><button onClick={()=>signOut(auth)}><LogOut size={17}/> Sair</button></div>
-    </aside>
-    <main className="main-content">
-      <header className="topbar"><div><p className="eyebrow">GESTÃO DE BANCA</p><h1>{tab==="painel"?"Visão geral":tab==="operacoes"?"Registrar operação":tab==="estatisticas"?"Estatísticas":"Risco e banca"}</h1></div><span className="user-pill">{user.email}</span></header>
-      {notice && <div className="notice global-notice">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
-      {dailyStatus && <div className="risk-alert"><ShieldCheck size={18}/>{dailyStatus}</div>}
-      {tab==="painel" && <>
-        <section className="stats-grid">
-          <StatCard label="Saldo da banca" value={money(Number(settings.capital)+total)} icon={Wallet} tone="blue" detail={"Capital inicial: "+money(settings.capital)}/>
-          <StatCard label="Resultado de hoje" value={money(todayResult)} icon={todayResult>=0?TrendingUp:TrendingDown} tone={todayResult>=0?"green":"red"} detail={todayOps.length+" operações hoje"}/>
-          <StatCard label="Resultado acumulado" value={money(total)} icon={Activity} tone={total>=0?"green":"red"}/>
-          <StatCard label="Drawdown máximo" value={money(drawdown)} icon={ArrowDownRight} tone="red"/>
-        </section>
-        <section className="panel chart-panel"><div className="panel-heading"><div><h2>Curva de capital</h2><p>Saldo estimado após cada operação</p></div><span className="chart-tag">Banca</span></div>
-          <div className="chart-area"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="balanceFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#38bdf8" stopOpacity={0.3}/><stop offset="100%" stopColor="#38bdf8" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#243248" strokeDasharray="3 3"/><XAxis dataKey="date" stroke="#8190a7" tick={{fontSize:11}}/><YAxis stroke="#8190a7" tick={{fontSize:11}}/><Tooltip formatter={v=>money(v)}/><Area type="monotone" dataKey="balance" stroke="#38bdf8" fill="url(#balanceFill)" strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
-        </section>
-        <section className="panel"><div className="panel-heading"><div><h2>Operações recentes</h2><p>Últimos lançamentos da sua conta</p></div><button className="secondary-btn" onClick={()=>setTab("operacoes")}>Nova operação</button></div><OperationsTable items={[...enriched].reverse().slice(0,5)} onDelete={removeOperation}/></section>
-      </>}
-      {tab==="operacoes" && <section className="panel form-panel"><div className="panel-heading"><div><h2>Nova operação WIN</h2><p>Informe os dados executados no mercado</p></div></div>
-        <form className="trade-form" onSubmit={saveOperation}>
-          <label>Data<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} required/></label>
-          <label>Tipo de operação<select value={form.side} onChange={e=>setForm({...form,side:e.target.value})}><option value="compra">Compra</option><option value="venda">Venda</option></select></label>
-          <label>Contratos<input type="number" min="1" step="1" value={form.contracts} onChange={e=>setForm({...form,contracts:e.target.value})} required/></label>
-          <label>Preço de entrada (pontos)<input type="number" step="0.5" value={form.entry} onChange={e=>setForm({...form,entry:e.target.value})} required/></label>
-          <label>Preço de saída (pontos)<input type="number" step="0.5" value={form.exit} onChange={e=>setForm({...form,exit:e.target.value})} required/></label>
-          <label className="wide">Observação<textarea rows="3" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Estratégia, motivo da entrada..."/></label>
-          <div className="preview-result"><span>Resultado estimado</span><b className={(form.entry!==""&&form.exit!==""?(form.side==="compra"?Number(form.exit)-Number(form.entry):Number(form.entry)-Number(form.exit))*Number(form.contracts)*Number(settings.pointValue):0)>=0?"positive":"negative"}>{money(form.entry!==""&&form.exit!==""?(form.side==="compra"?Number(form.exit)-Number(form.entry):Number(form.entry)-Number(form.exit))*Number(form.contracts)*Number(settings.pointValue):0)}</b><small>Antes de taxas, emolumentos e corretagem</small></div>
-          <button className="primary-btn wide" disabled={saving}>{saving?"Salvando...":"Salvar operação"}</button>
-        </form>
-      </section>}
-      {tab==="estatisticas" && <><section className="stats-grid"><StatCard label="Taxa de acerto" value={(enriched.length?(wins.length/enriched.length)*100:0).toFixed(1)+"%"} icon={Target} tone="blue" detail={wins.length+" ganhos · "+losses.length+" perdas"}/><StatCard label="Payoff" value={payoff?payoff.toFixed(2)+"x":"—"} icon={Activity}/><StatCard label="Melhor dia" value={days.length?money(Math.max(...days)):money(0)} icon={ArrowUpRight} tone="green"/><StatCard label="Pior dia" value={days.length?money(Math.min(...days)):money(0)} icon={ArrowDownRight} tone="red"/></section><section className="panel"><div className="panel-heading"><div><h2>Desempenho</h2><p>Resumo de todas as operações registradas</p></div><button className="secondary-btn" onClick={exportCSV}><Download size={16}/> Exportar CSV</button></div><div className="stats-details"><div><span>Total de operações</span><b>{enriched.length}</b></div><div><span>Resultado positivo</span><b className="positive">{money(grossWins)}</b></div><div><span>Resultado negativo</span><b className="negative">{money(-grossLosses)}</b></div><div><span>Média por operação</span><b>{money(enriched.length?total/enriched.length:0)}</b></div></div></section></>}
-      {tab==="config" && <section className="panel form-panel"><div className="panel-heading"><div><h2>Configurações financeiras</h2><p>Defina sua banca e limites de risco</p></div></div><form className="trade-form" onSubmit={saveSettings}><label>Capital inicial (R$)<input type="number" min="0" step="0.01" value={settings.capital} onChange={e=>setSettings({...settings,capital:e.target.value})}/></label><label>Valor por ponto/contrato (R$)<input type="number" min="0.01" step="0.01" value={settings.pointValue} onChange={e=>setSettings({...settings,pointValue:e.target.value})}/></label><label>Stop diário (R$)<input type="number" min="0" step="0.01" value={settings.dailyStop} onChange={e=>setSettings({...settings,dailyStop:e.target.value})}/></label><label>Meta diária (R$)<input type="number" min="0" step="0.01" value={settings.dailyGoal} onChange={e=>setSettings({...settings,dailyGoal:e.target.value})}/></label><p className="muted wide">No WIN, o valor padrão é R$ 0,20 por ponto por contrato. Resultado calculado antes dos custos operacionais.</p><button className="primary-btn wide" disabled={saving}>Salvar configurações</button></form></section>}
-      <footer>Trade Bank WIN · Controle pessoal de operações · B3</footer>
-    </main>
-  </div>;
-}
-
-function OperationsTable({items,onDelete}) {
-  if(!items.length)return <div className="empty-state">Nenhuma operação registrada ainda.</div>;
-  return <div className="table-scroll"><table><thead><tr><th>Data</th><th>Tipo</th><th>Contratos</th><th>Entrada → saída</th><th>Resultado</th><th></th></tr></thead><tbody>{items.map(op=><tr key={op.id}><td>{op.date?.split("-").reverse().join("/")}</td><td><span className={"side-tag "+op.side}>{op.side}</span></td><td>{op.contracts}</td><td>{op.entry} → {op.exit}</td><td className={op.result>=0?"positive":"negative"}>{money(op.result)}</td><td><button className="icon-btn" title="Excluir operação" onClick={()=>onDelete(op.id)}><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>;
+import { createUserWithEmailAndPassword,onAuthStateChanged,sendPasswordResetEmail,signInWithEmailAndPassword,signOut,updateProfile } from "firebase/auth";
+import { addDoc,collection,deleteDoc,doc,getDoc,onSnapshot,orderBy,query,setDoc,updateDoc } from "firebase/firestore";
+import { Activity,Wallet,PlusCircle,BarChart3,Target,LogOut,Download,Trash2,Edit3,Eye,EyeOff,ShieldCheck,TrendingUp,TrendingDown,ArrowDownRight,ArrowUpRight,Layers,Settings as SettingsIcon,CalendarDays } from "lucide-react";
+import { auth,db } from "./firebase";
+const MARKETS={B3:{label:"B3",currency:"BRL",symbol:"R$",color:"#38bdf8"},international:{label:"Internacional",currency:"USD",symbol:"US$",color:"#a78bfa"},forex:{label:"Forex",currency:"USD",symbol:"US$",color:"#4adea4"}};
+const defaults=[
+ {name:"WIN",market:"B3",type:"Futuro",pointSize:1,pointValue:.2,currency:"BRL",note:"Mini índice — valor de referência"},
+ {name:"WDO",market:"B3",type:"Futuro",pointSize:1,pointValue:10,currency:"BRL",note:"Mini dólar — valor de referência"}
+];
+const catalog=[
+ ["NQ","Internacional","Futuro",1,20,"USD"],["MNQ","Internacional","Futuro",1,2,"USD"],["ES","Internacional","Futuro",1,50,"USD"],["MES","Internacional","Futuro",1,5,"USD"],["YM","Internacional","Futuro",1,5,"USD"],["MYM","Internacional","Futuro",1,.5,"USD"],
+ ["EURUSD","Forex","Forex",.0001,10,"USD"],["GBPUSD","Forex","Forex",.0001,10,"USD"],["AUDUSD","Forex","Forex",.0001,10,"USD"],["USDJPY","Forex","Forex",.01,0,"USD"],["XAUUSD","Forex","Outro",.01,0,"USD"]
+].map(([name,market,type,pointSize,pointValue,currency])=>({name,market,type,pointSize,pointValue,currency,note:"Referência para 1 contrato/lote; confirme na corretora"}));
+const today=()=>new Date().toLocaleDateString("en-CA");
+const money=(v,c="BRL")=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:c}).format(Number(v)||0);
+const marketKey=m=>m==="B3"?"b3":m==="Internacional"?"international":"forex";
+const opMarket=o=>o.market||"B3";
+const opCurrency=o=>o.currency||(opMarket(o)==="B3"?"BRL":"USD");
+function calc(o,a){const size=Number(a?.pointSize||o.pointSize||1),value=Number(a?.pointValue??o.pointValue??.2),delta=o.side==="compra"?Number(o.exit)-Number(o.entry):Number(o.entry)-Number(o.exit);const points=size?delta/size:0;return {points,result:(o.realResult!==""&&o.realResult!=null?Number(o.realResult):points*value*Number(o.quantity??o.contracts??1))-Number(o.costs||0)}}
+const err=e=>({"auth/email-already-in-use":"Este e-mail já está cadastrado.","auth/invalid-credential":"E-mail ou senha incorretos.","auth/weak-password":"A senha precisa ter 6 caracteres ou mais."}[e.code]||e.message||"Ocorreu um erro.");
+function Auth(){const [mode,M]=useState("login"),[email,E]=useState(""),[pass,P]=useState(""),[name,N]=useState(""),[show,S]=useState(false),[msg,Q]=useState(""),[busy,B]=useState(false);async function go(e){e.preventDefault();B(true);Q("");try{if(mode==="register"){const r=await createUserWithEmailAndPassword(auth,email.trim(),pass);if(name)await updateProfile(r.user,{displayName:name})}else if(mode==="reset"){await sendPasswordResetEmail(auth,email.trim());Q("Link de recuperação enviado.");return}else await signInWithEmailAndPassword(auth,email.trim(),pass)}catch(x){Q(err(x))}finally{B(false)}}return <main className="auth-wrap"><div className="auth-card"><div className="brand-mark"><Activity/></div><p className="eyebrow">GESTÃO MULTIMERCADO</p><h1>Trade Bank</h1><p className="muted">Sua performance, organizada por mercado.</p><div className="auth-tabs"><button className={mode==="login"?"selected":""} onClick={()=>M("login")}>Entrar</button><button className={mode==="register"?"selected":""} onClick={()=>M("register")}>Criar conta</button></div><form className="form-stack" onSubmit={go}>{mode==="register"&&<label>Nome<input value={name} onChange={e=>N(e.target.value)} required/></label>}<label>E-mail<input type="email" value={email} onChange={e=>E(e.target.value)} required/></label>{mode!=="reset"&&<label>Senha<div className="password-field"><input type={show?"text":"password"} value={pass} onChange={e=>P(e.target.value)} minLength="6" required/><button type="button" className="password-toggle" onClick={()=>S(!show)}>{show?<EyeOff/>:<Eye/>}</button></div></label>}{msg&&<p className="notice">{msg}</p>}<button className="primary-btn" disabled={busy}>{busy?"Aguarde...":mode==="register"?"Criar conta":mode==="reset"?"Enviar recuperação":"Entrar"}</button></form><button className="text-btn" onClick={()=>{M(mode==="reset"?"login":"reset");Q("")}}>{mode==="reset"?"Voltar ao login":"Esqueci minha senha"}</button></div></main>}
+function Stat({label,value,detail,icon:Icon}){return <div className="stat-card"><div className="stat-top"><span>{label}</span><Icon size={18}/></div><strong>{value}</strong>{detail&&<small>{detail}</small>}</div>}
+export default function App(){
+ const [user,U]=useState(undefined),[ops,O]=useState([]),[assets,A]=useState([]),[flows,F]=useState([]),[settings,S]=useState({}),[tab,T]=useState("painel"),[market,M]=useState(()=>localStorage.getItem("tb-market")||"Todos"),[busy,B]=useState(false),[msg,Q]=useState(""),[editId,EI]=useState(null),[filter,FI]=useState({asset:"Todos",from:"",to:""}),[opForm,OF]=useState({market:"B3",assetId:"",side:"compra",quantity:1,entry:"",exit:"",date:today(),time:new Date().toTimeString().slice(0,5),costs:0,setup:"",notes:"",realResult:""}),[assetForm,AF]=useState({name:"",market:"B3",type:"Futuro",pointSize:1,pointValue:1,currency:"BRL",note:""}),[flowForm,FF]=useState({market:"B3",type:"aporte",amount:"",date:today(),note:""}),[settingForm,SF]=useState({});
+ useEffect(()=>onAuthStateChanged(auth,u=>U(u)),[]);
+ useEffect(()=>{if(!user){O([]);A([]);F([]);return}const unsub=[onSnapshot(collection(db,"users",user.uid,"operations"),s=>O(s.docs.map(d=>({id:d.id,...d.data()})))),onSnapshot(collection(db,"users",user.uid,"assets"),s=>A(s.docs.map(d=>({id:d.id,...d.data()})))),onSnapshot(collection(db,"users",user.uid,"cashflows"),s=>F(s.docs.map(d=>({id:d.id,...d.data()})))),onSnapshot(collection(db,"users",user.uid,"settings"),s=>{const x={};s.docs.forEach(d=>x[d.id]=d.data());S(x);})];return()=>unsub.forEach(f=>f())},[user]);
+ useEffect(()=>{if(user&&assets.length===0){getDoc(doc(db,"users",user.uid,"settings","migration")).then(async s=>{if(s.exists()&&s.data().assetsSeeded)return;for(const a of defaults)await addDoc(collection(db,"users",user.uid,"assets"),a);await setDoc(doc(db,"users",user.uid,"settings","migration"),{assetsSeeded:true},{merge:true})}).catch(e=>Q(err(e)))}},[user,assets.length]);
+ useEffect(()=>{localStorage.setItem("tb-market",market)},[market]);
+ const visibleOps=useMemo(()=>ops.filter(o=>market==="Todos"||opMarket(o)===market),[ops,market]);
+ const getAsset=o=>assets.find(a=>a.id===o.assetId)||assets.find(a=>a.name===(o.asset||"WIN")&&a.market===opMarket(o))||{name:o.asset||"WIN",pointSize:1,pointValue:o.pointValue??.2,currency:opCurrency(o)};
+ const enriched=visibleOps.map(o=>({...o,...calc(o,getAsset(o)),currency:opCurrency(o),market:opMarket(o),assetName:o.assetName||getAsset(o).name}));
+ const cash=flows.filter(f=>market==="Todos"||f.market===market);
+ const currencyTotals=["BRL","USD"].map(cur=>{const ms=cur==="BRL"?["B3"]:["Internacional","Forex"];const initial=ms.reduce((s,m)=>s+Number(settings[marketKey(m)]?.capital|| (m==="B3"?settings.main?.capital:0)||0),0);const trading=enriched.filter(o=>o.currency===cur).reduce((s,o)=>s+o.result,0);const movement=cash.filter(f=>(f.currency||(f.market==="B3"?"BRL":"USD"))===cur).reduce((s,f)=>s+(f.type==="aporte"?1:-1)*Number(f.amount),0);return {cur,balance:initial+trading+movement,initial,trading,movement}});
+ const total=enriched.reduce((s,o)=>s+o.result,0),todayOps=enriched.filter(o=>o.date===today()),todayResult=todayOps.reduce((s,o)=>s+o.result,0);
+ const period=(days)=>{const d=new Date();d.setDate(d.getDate()-days);return enriched.filter(o=>new Date(o.date+"T00:00:00")>=d).reduce((s,o)=>s+o.result,0)};
+ const wins=enriched.filter(o=>o.result>0),losses=enriched.filter(o=>o.result<0),grossW=wins.reduce((s,o)=>s+o.result,0),grossL=Math.abs(losses.reduce((s,o)=>s+o.result,0)),payoff=losses.length&&wins.length?(grossW/wins.length)/(grossL/losses.length):0;
+ const activeMarket=market==="Todos"?"B3":market,activeCurrency=activeMarket==="B3"?"BRL":"USD",activeSettings=settings[marketKey(activeMarket)]||{},activeOps=enriched.filter(o=>o.market===activeMarket);
+ const activeDay=activeOps.filter(o=>o.date===today()).reduce((s,o)=>s+o.result,0),stop=Number(activeSettings.dailyStop||0),goal=Number(activeSettings.dailyGoal||0);
+ const status=market!=="Todos"&&((stop>0&&activeDay<=-stop)?"Stop diário atingido!":(goal>0&&activeDay>=goal)?"Meta diária atingida!":"");
+ function chooseMarket(v){M(v);Q("")}
+ async function saveSettings(e){e.preventDefault();B(true);try{await setDoc(doc(db,"users",user.uid,"settings",marketKey(activeMarket)),{capital:Number(settingForm.capital??activeSettings.capital??0),dailyStop:Number(settingForm.dailyStop??activeSettings.dailyStop??0),dailyGoal:Number(settingForm.dailyGoal??activeSettings.dailyGoal??0),currency:activeCurrency},{merge:true});Q("Configurações salvas.")}catch(x){Q(err(x))}finally{B(false)}}
+ async function saveAsset(e){e.preventDefault();B(true);try{const data={...assetForm,pointSize:Number(assetForm.pointSize),pointValue:Number(assetForm.pointValue),currency:assetForm.market==="B3"?"BRL":"USD"};if(assetForm.id){await updateDoc(doc(db,"users",user.uid,"assets",assetForm.id),data)}else await addDoc(collection(db,"users",user.uid,"assets"),data);AF({name:"",market:activeMarket,type:"Futuro",pointSize:1,pointValue:1,currency:activeCurrency,note:""});Q("Ativo salvo.")}catch(x){Q(err(x))}finally{B(false)}}
+ async function addCatalog(a){if(assets.some(x=>x.name===a.name&&x.market===a.market)){Q("Esse ativo já está na sua lista.");return}try{await addDoc(collection(db,"users",user.uid,"assets"),a);Q(a.name+" adicionado.")}catch(x){Q(err(x))}}
+ function startEditAsset(a){AF({...a,id:a.id})}
+ async function saveOp(e){e.preventDefault();const a=assets.find(x=>x.id===opForm.assetId);if(!a){Q("Escolha um ativo.");return}B(true);try{const data={...opForm,market:a.market,assetId:a.id,assetName:a.name,currency:a.currency,pointSize:Number(a.pointSize),pointValue:Number(a.pointValue),quantity:Number(opForm.quantity),entry:Number(opForm.entry),exit:Number(opForm.exit),costs:Number(opForm.costs||0),realResult:opForm.realResult===""?null:Number(opForm.realResult),createdAt:Date.now()};if(editId)await updateDoc(doc(db,"users",user.uid,"operations",editId),data);else await addDoc(collection(db,"users",user.uid,"operations"),data);OF({...opForm,entry:"",exit:"",realResult:"",notes:""});EI(null);Q("Operação salva.")}catch(x){Q(err(x))}finally{B(false)}}
+ function editOp(o){EI(o.id);OF({...o,quantity:o.quantity??o.contracts??1,assetId:o.assetId||assets.find(a=>a.name===(o.asset||"WIN")&&a.market===opMarket(o))?.id||"",market:opMarket(o),costs:o.costs||0,realResult:o.realResult??""});T("operacoes")}
+ async function del(path,id){if(!confirm("Excluir este registro?"))return;try{await deleteDoc(doc(db,"users",user.uid,path,id));Q("Registro excluído.")}catch(x){Q(err(x))}}
+ async function saveFlow(e){e.preventDefault();try{await addDoc(collection(db,"users",user.uid,"cashflows"),{...flowForm,amount:Number(flowForm.amount),currency:flowForm.market==="B3"?"BRL":"USD"});FF({...flowForm,amount:"",note:""});Q("Movimentação registrada.")}catch(x){Q(err(x))}}
+ function exportCSV(){const rows=[["Data","Hora","Mercado","Ativo","Lado","Quantidade","Entrada","Saída","Pontos/Pips","Custos","Resultado","Moeda","Setup","Observação"],...enriched.map(o=>[o.date,o.time||"",o.market,o.assetName,o.side,o.quantity??o.contracts,o.entry,o.exit,o.points,o.costs,o.result,o.currency,o.setup||"",o.notes||""])];const csv="\uFEFF"+rows.map(r=>r.map(v=>'"'+String(v??"").replaceAll('"','""')+'"').join(";")).join("\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="trade-bank-operacoes.csv";a.click();URL.revokeObjectURL(url)}
+ if(user===undefined)return <div className="loading-screen">Carregando...</div>;if(!user)return <Auth/>;
+ const assetOptions=assets.filter(a=>a.market===opForm.market);
+ const filtered=enriched.filter(o=>(filter.asset==="Todos"||o.assetName===filter.asset)&&(!filter.from||o.date>=filter.from)&&(!filter.to||o.date<=filter.to));
+ const days={};activeOps.forEach(o=>days[o.date]=(days[o.date]||0)+o.result);
+ return <div className="app-shell"><aside className="sidebar"><div className="sidebar-brand"><div className="brand-mark small"><Activity/></div><div><b>Trade Bank</b><small>MULTIMERCADO</small></div></div><nav>{[["painel",Wallet,"Painel"],["operacoes",PlusCircle,"Operações"],["ativos",Layers,"Ativos"],["estatisticas",BarChart3,"Estatísticas"],["config",SettingsIcon,"Configurações"]].map(([id,I,n])=><button key={id} className={tab===id?"nav-active":""} onClick={()=>T(id)}><I size={18}/>{n}</button>)}</nav><div className="sidebar-user"><span>{user.email}</span><button onClick={()=>signOut(auth)}><LogOut/> Sair</button></div></aside>
+ <main className="main-content"><header className="topbar"><div><p className="eyebrow">GESTÃO DE PERFORMANCE</p><h1>{({painel:"Painel",operacoes:"Operações",ativos:"Ativos",estatisticas:"Estatísticas",config:"Configurações"})[tab]}</h1></div><span className="user-pill">{user.email}</span></header>
+ <div className="market-switch">{["Todos","B3","Internacional","Forex"].map(x=><button key={x} className={market===x?"active":""} onClick={()=>chooseMarket(x)}>{x}</button>)}</div>
+ {msg&&<div className="notice global-notice">{msg}<button onClick={()=>Q("")}>×</button></div>}{status&&<div className="risk-alert"><ShieldCheck/>{status} Resultado de hoje: {money(activeDay,activeCurrency)}</div>}
+ {tab==="painel"&&<><section className="stats-grid">{market==="Todos"?currencyTotals.map(x=><Stat key={x.cur} label={"Saldo geral · "+x.cur} value={money(x.balance,x.cur)} detail={"Operações: "+money(x.trading,x.cur)} icon={Wallet}/>):<><Stat label="Saldo da banca" value={money(Number(activeSettings.capital||0)+activeOps.reduce((s,o)=>s+o.result,0)+cash.filter(f=>f.market===activeMarket).reduce((s,f)=>s+(f.type==="aporte"?1:-1)*Number(f.amount),0),activeCurrency)} icon={Wallet}/><Stat label="Resultado hoje" value={money(activeDay,activeCurrency)} icon={Activity}/><Stat label="Resultado na semana" value={money(period(7),activeCurrency)} icon={TrendingUp}/><Stat label="Resultado no mês" value={money(enriched.filter(o=>o.date.slice(0,7)===today().slice(0,7)).reduce((s,o)=>s+o.result,0),activeCurrency)} icon={TrendingDown}/></>}</section><section className="panel"><div className="panel-heading"><div><h2>Resultado por moeda</h2><p>Sem conversão entre R$ e US$</p></div></div><div className="stats-details">{currencyTotals.map(x=><div key={x.cur}><span>{x.cur==="BRL"?"B3 · Reais":"Internacional + Forex · Dólares"}</span><b>{money(x.balance,x.cur)}</b></div>)}</div></section><section className="panel"><div className="panel-heading"><div><h2>Operações recentes</h2><p>Registros do mercado selecionado</p></div><button className="secondary-btn" onClick={()=>T("operacoes")}>Nova operação</button></div><div className="table-scroll"><table><thead><tr><th>Data</th><th>Mercado</th><th>Ativo</th><th>Resultado</th></tr></thead><tbody>{[...enriched].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,8).map(o=><tr key={o.id}><td>{o.date}</td><td>{o.market}</td><td>{o.assetName}</td><td className={o.result>=0?"positive":"negative"}>{money(o.result,o.currency)}</td></tr>)}</tbody></table></div></section></>}
+ {tab==="operacoes"&&<><section className="panel form-panel"><div className="panel-heading"><div><h2>{editId?"Editar operação":"Registrar operação"}</h2><p>Resultado calculado automaticamente na moeda do ativo</p></div></div><form className="trade-form" onSubmit={saveOp}><label>Mercado<select value={opForm.market} onChange={e=>OF({...opForm,market:e.target.value,assetId:""})}>{Object.keys(MARKETS).map(x=><option key={x}>{x==="international"?"Internacional":x}</option>)}</select></label><label>Ativo<select value={opForm.assetId} onChange={e=>OF({...opForm,assetId:e.target.value})} required><option value="">Selecione</option>{assetOptions.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label><label>Compra ou venda<select value={opForm.side} onChange={e=>OF({...opForm,side:e.target.value})}><option value="compra">Compra</option><option value="venda">Venda</option></select></label><label>Quantidade (contratos/lotes)<input type="number" min="0.01" step="any" value={opForm.quantity} onChange={e=>OF({...opForm,quantity:e.target.value})} required/></label><label>Entrada<input type="number" step="any" value={opForm.entry} onChange={e=>OF({...opForm,entry:e.target.value})} required/></label><label>Saída<input type="number" step="any" value={opForm.exit} onChange={e=>OF({...opForm,exit:e.target.value})} required/></label><label>Data<input type="date" value={opForm.date} onChange={e=>OF({...opForm,date:e.target.value})} required/></label><label>Hora<input type="time" value={opForm.time} onChange={e=>OF({...opForm,time:e.target.value})}/></label><label>Custos / corretagem (opcional)<input type="number" min="0" step="any" value={opForm.costs} onChange={e=>OF({...opForm,costs:e.target.value})}/></label><label>Resultado real da corretora (opcional)<input type="number" step="any" value={opForm.realResult} onChange={e=>OF({...opForm,realResult:e.target.value})}/></label><label>Setup / estratégia<input value={opForm.setup} onChange={e=>OF({...opForm,setup:e.target.value})}/></label><label className="wide">Observação<textarea rows="2" value={opForm.notes} onChange={e=>OF({...opForm,notes:e.target.value})}/></label><button className="primary-btn wide" disabled={busy}>{busy?"Salvando...":editId?"Atualizar operação":"Salvar operação"}</button>{editId&&<button type="button" className="secondary-btn wide" onClick={()=>{EI(null);OF({...opForm,entry:"",exit:""})}}>Cancelar edição</button>}</form></section><section className="panel"><div className="panel-heading"><h2>Histórico</h2><button className="secondary-btn" onClick={exportCSV}><Download size={16}/> CSV</button></div><div className="filters"><label>Ativo<select value={filter.asset} onChange={e=>FI({...filter,asset:e.target.value})}><option>Todos</option>{[...new Set(enriched.map(o=>o.assetName))].map(a=><option key={a}>{a}</option>)}</select></label><label>De<input type="date" value={filter.from} onChange={e=>FI({...filter,from:e.target.value})}/></label><label>Até<input type="date" value={filter.to} onChange={e=>FI({...filter,to:e.target.value})}/></label></div><div className="table-scroll"><table><thead><tr><th>Data / hora</th><th>Ativo</th><th>Lado</th><th>Qtd.</th><th>Resultado</th><th>Ações</th></tr></thead><tbody>{filtered.map(o=><tr key={o.id}><td>{o.date} {o.time}</td><td>{o.assetName}</td><td>{o.side}</td><td>{o.quantity??o.contracts}</td><td className={o.result>=0?"positive":"negative"}>{money(o.result,o.currency)}</td><td><button className="icon-btn" onClick={()=>editOp(o)}><Edit3 size={16}/></button><button className="icon-btn" onClick={()=>del("operations",o.id)}><Trash2 size={16}/></button></td></tr>)}</tbody></table></div></section></>}
+ {tab==="ativos"&&<><section className="panel form-panel"><div className="panel-heading"><div><h2>{assetForm.id?"Editar ativo":"Criar ativo personalizado"}</h2><p>Os valores são referências; confirme sempre na sua corretora.</p></div></div><form className="trade-form" onSubmit={saveAsset}><label>Nome / ticker<input value={assetForm.name} onChange={e=>AF({...assetForm,name:e.target.value.toUpperCase()})} required/></label><label>Mercado<select value={assetForm.market} onChange={e=>AF({...assetForm,market:e.target.value,currency:e.target.value==="B3"?"BRL":"USD"})}><option>B3</option><option>Internacional</option><option>Forex</option></select></label><label>Tipo<select value={assetForm.type} onChange={e=>AF({...assetForm,type:e.target.value})}><option>Futuro</option><option>Forex</option><option>Outro</option></select></label><label>Tamanho do ponto / pip<input type="number" step="any" value={assetForm.pointSize} onChange={e=>AF({...assetForm,pointSize:e.target.value})}/></label><label>Valor por ponto / pip (1 contrato/lote)<input type="number" step="any" value={assetForm.pointValue} onChange={e=>AF({...assetForm,pointValue:e.target.value})}/></label><label>Moeda<select value={assetForm.currency} onChange={e=>AF({...assetForm,currency:e.target.value})}><option value="BRL">BRL (R$)</option><option value="USD">USD (US$)</option></select></label><label className="wide">Observação<input value={assetForm.note} onChange={e=>AF({...assetForm,note:e.target.value})}/></label><button className="primary-btn wide" disabled={busy}>Salvar ativo</button></form></section><section className="panel"><h2>Minha lista de ativos</h2><div className="table-scroll"><table><thead><tr><th>Ativo</th><th>Mercado</th><th>Tipo</th><th>Valor ponto/pip</th><th></th></tr></thead><tbody>{assets.filter(a=>market==="Todos"||a.market===market).map(a=><tr key={a.id}><td>{a.name}</td><td>{a.market}</td><td>{a.type}</td><td>{money(a.pointValue,a.currency)}</td><td><button className="icon-btn" onClick={()=>startEditAsset(a)}><Edit3/></button><button className="icon-btn" onClick={()=>del("assets",a.id)}><Trash2/></button></td></tr>)}</tbody></table></div></section><section className="panel"><h2>Catálogo para adicionar</h2><p className="muted">Valores de referência. Confirme o contrato, tick e valor financeiro com sua corretora.</p><div className="catalog-grid">{catalog.filter(a=>(market==="Todos"||a.market===market)&&!assets.some(x=>x.name===a.name&&x.market===a.market)).map(a=><div className="catalog-item" key={a.name}><b>{a.name}</b><small>{a.market} · {a.pointValue?money(a.pointValue,a.currency):"valor editável"}</small><button className="secondary-btn" onClick={()=>addCatalog(a)}>Adicionar</button></div>)}</div></section></>}
+ {tab==="estatisticas"&&<><section className="stats-grid"><Stat label="Taxa de acerto" value={(enriched.length?wins.length/enriched.length*100:0).toFixed(1)+"%"} detail={wins.length+" ganhos · "+losses.length+" perdas"} icon={Target}/><Stat label="Payoff" value={payoff?payoff.toFixed(2)+"x":"—"} icon={Activity}/><Stat label="Operações" value={enriched.length} icon={BarChart3}/><Stat label="Resultado total" value={money(total,market==="B3"?"BRL":"USD")} icon={Wallet}/></section><section className="panel"><div className="panel-heading"><h2>Resultado por ativo</h2><button className="secondary-btn" onClick={exportCSV}><Download/> CSV geral</button></div>{Object.entries(enriched.reduce((x,o)=>{const k=o.assetName+" · "+o.currency;x[k]=(x[k]||0)+o.result;return x},{})).map(([k,v])=><div className="stats-line" key={k}><span>{k}</span><b className={v>=0?"positive":"negative"}>{v.toFixed(2)}</b></div>)}</section><section className="panel"><h2>Calendário de resultados</h2><div className="calendar-grid">{Object.entries(days).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v])=><div className={v>=0?"calendar-day win":"calendar-day loss"} key={d}><b>{d.slice(8,10)}</b><small>{d.slice(5,7)}/{d.slice(0,4)}</small><strong>{v.toFixed(2)}</strong></div>)}</div></section></>}
+ {tab==="config"&&<><section className="panel form-panel"><div className="panel-heading"><div><h2>Configurações · {activeMarket}</h2><p>Capital, stop e meta independentes por mercado.</p></div></div><form className="trade-form" onSubmit={saveSettings}><label>Capital inicial ({activeCurrency})<input type="number" step="any" value={settingForm.capital??activeSettings.capital??(activeMarket==="B3"?(settings.main?.capital??1000):0)} onChange={e=>SF({...settingForm,capital:e.target.value})}/></label><label>Stop diário ({activeCurrency})<input type="number" step="any" value={settingForm.dailyStop??activeSettings.dailyStop??200} onChange={e=>SF({...settingForm,dailyStop:e.target.value})}/></label><label>Meta diária ({activeCurrency})<input type="number" step="any" value={settingForm.dailyGoal??activeSettings.dailyGoal??200} onChange={e=>SF({...settingForm,dailyGoal:e.target.value})}/></label><button className="primary-btn wide" disabled={busy}>Salvar configuração</button></form></section><section className="panel"><h2>Aportes e saques · {activeMarket}</h2><form className="trade-form" onSubmit={saveFlow}><label>Movimentação<select value={flowForm.type} onChange={e=>FF({...flowForm,type:e.target.value})}><option value="aporte">Aporte</option><option value="saque">Saque</option></select></label><label>Valor ({activeCurrency})<input type="number" min=".01" step="any" value={flowForm.amount} onChange={e=>FF({...flowForm,amount:e.target.value})} required/></label><label>Data<input type="date" value={flowForm.date} onChange={e=>FF({...flowForm,date:e.target.value})}/></label><label>Observação<input value={flowForm.note} onChange={e=>FF({...flowForm,note:e.target.value})}/></label><button className="primary-btn wide">Registrar movimentação</button></form><div className="table-scroll"><table><thead><tr><th>Data</th><th>Tipo</th><th>Valor</th><th></th></tr></thead><tbody>{flows.filter(f=>f.market===activeMarket).map(f=><tr key={f.id}><td>{f.date}</td><td>{f.type}</td><td>{money(f.amount,activeCurrency)}</td><td><button className="icon-btn" onClick={()=>del("cashflows",f.id)}><Trash2/></button></td></tr>)}</tbody></table></div></section></>}
+ <footer>Trade Bank · Gestão multimercado · Resultados estimados sujeitos a custos e especificações da corretora.</footer></main></div>
 }
