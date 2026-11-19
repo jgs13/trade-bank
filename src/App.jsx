@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import {
   Activity, ArrowDownRight, ArrowUpRight, BarChart3, Download, LogOut,
-  PlusCircle, ShieldCheck, Target, Trash2, TrendingDown, TrendingUp, Wallet
+  PlusCircle, ShieldCheck, Target, Trash2, TrendingDown, TrendingUp, Wallet, Eye, EyeOff
 } from "lucide-react";
 import { auth, db } from "./firebase";
 
@@ -34,6 +34,7 @@ function AuthScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   async function submit(event) {
@@ -65,7 +66,7 @@ function AuthScreen() {
       <form onSubmit={submit} className="form-stack">
         {mode === "register" && <label>Nome<input value={name} onChange={e=>setName(e.target.value)} placeholder="Seu nome" required /></label>}
         <label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@email.com" required /></label>
-        {mode !== "reset" && <label>Senha<input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mínimo de 6 caracteres" minLength="6" required /></label>}
+        {mode !== "reset" && <label>Senha<div className="password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mínimo de 6 caracteres" minLength="6" required /><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} title={showPassword ? "Ocultar senha" : "Mostrar senha"}>{showPassword ? <EyeOff size={19}/> : <Eye size={19}/>}</button></div></label>}
         {message && <p className="notice">{message}</p>}
         <button className="primary-btn" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar minha conta" : mode === "reset" ? "Enviar recuperação" : "Entrar"}</button>
       </form>
