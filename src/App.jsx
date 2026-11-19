@@ -102,7 +102,7 @@ function buildTaxMonths(operations,taxRate,withholdingRate){
   return {month,net,lossOffset,base,tax,irrf,payable:Math.max(0,tax-irrf),lossCarry,due:lastBusinessDayOfNextMonth(month),count:rows.length};
  });
 }
-function EquityChart({title,currency,series})
+function EquityChart({title,currency,series}){
  const rows=series.points;if(rows.length<2)return <section className="panel"><h2>{title} · Curva de capital</h2><p className="muted">Registre operações ou movimentações para visualizar a evolução da banca.</p></section>;
  const w=Math.max(420,rows.length*42),h=190,p=16,vals=rows.map(x=>x.balance),lo=Math.min(...vals),hi=Math.max(...vals),span=hi-lo||1;
  const xy=rows.map((x,i)=>({x:p+i*(w-p*2)/(rows.length-1),y:h-p-(x.balance-lo)/span*(h-p*2)}));
