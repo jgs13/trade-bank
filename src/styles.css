@@ -24,3 +24,88 @@
 .catalog-item>button{box-sizing:border-box;width:100%;max-width:100%;min-width:0;}
 @media(max-width:700px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:390px){.catalog-grid{grid-template-columns:minmax(0,1fr);}}
+
+
+/* Novas áreas: imposto, compartilhamento e tema claro */
+.tax-month-label{display:grid;gap:7px;max-width:260px;margin:8px 0 18px;color:#aab8cb;font-size:11px;font-weight:600}
+.tax-month-label input{background:#0b1627;border:1px solid #2a3b54;border-radius:8px;padding:11px;color:#edf4ff}
+.tax-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
+.tax-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.tax-summary>div{display:grid;gap:7px;background:#0c192a;border:1px solid #26364d;border-radius:9px;padding:13px}
+.tax-summary span{font-size:10px;color:#8796ab}
+.tax-summary b{font:700 14px Manrope;color:#e7edf7}
+.tax-fixed-warning{position:sticky;bottom:74px;z-index:2;margin:16px 0 0;padding:13px;border-radius:9px;background:#3b2b19;border:1px solid #755128;color:#ffd08a;font-size:11px;font-weight:700;line-height:1.5}
+.tax-month-row{width:100%;display:grid;grid-template-columns:90px 1fr 1fr auto;gap:9px;align-items:center;text-align:left;padding:12px 10px;border:1px solid #26364d;border-radius:8px;background:#0c192a;color:#b8c6d9;margin:6px 0;font-size:10px}
+.tax-month-row strong{color:#4adea4;font-size:12px}
+.tax-month-row.selected{border-color:#38bdf8;background:#122b43}
+.tax-own-rules{margin-top:14px;line-height:1.5}
+.theme-panel label{display:grid;gap:7px;max-width:360px;color:#aab8cb;font-size:11px;font-weight:600}
+.theme-panel select{background:#0b1627;border:1px solid #2a3b54;border-radius:8px;padding:11px;color:#edf4ff}
+.share-options{margin-top:14px}
+.share-check{display:flex!important;grid-template-columns:auto 1fr;align-items:center;gap:10px!important}
+.share-check input{width:18px!important;height:18px;accent-color:#38bdf8}
+html[data-theme="light"],html[data-theme="light"] body{background:#f3f6fb;color:#1e293b}
+html[data-theme="light"] .app-shell{background:#f3f6fb;color:#1e293b}
+html[data-theme="light"] .sidebar{background:#fff;border-color:#d8e1ed}
+html[data-theme="light"] .sidebar-brand b,html[data-theme="light"] .panel h2,html[data-theme="light"] .topbar h1{color:#172033}
+html[data-theme="light"] .sidebar nav button,html[data-theme="light"] .sidebar-user button{color:#52647d}
+html[data-theme="light"] .sidebar nav .nav-active{background:#e5f3ff;color:#075985}
+html[data-theme="light"] .sidebar-user{border-color:#dbe4ef}
+html[data-theme="light"] .main-content{color:#1e293b}
+html[data-theme="light"] .market-switch{background:#e8eef6;border-color:#d5dfeb}
+html[data-theme="light"] .market-switch button{color:#52647d}
+html[data-theme="light"] .market-switch button.active{background:#d5eaff;color:#075985}
+html[data-theme="light"] .stat-card,html[data-theme="light"] .panel,html[data-theme="light"] .auth-card{background:#fff;border-color:#d8e1ed;color:#1e293b}
+html[data-theme="light"] .stat-top,html[data-theme="light"] .stat-card small,html[data-theme="light"] .panel-heading p,html[data-theme="light"] .muted,html[data-theme="light"] .field-hint{color:#64748b}
+html[data-theme="light"] .stat-card strong{color:#172033}
+html[data-theme="light"] .trade-form input,html[data-theme="light"] .trade-form select,html[data-theme="light"] .trade-form textarea,html[data-theme="light"] .form-stack input,html[data-theme="light"] .filters input,html[data-theme="light"] .filters select,html[data-theme="light"] .catalog-item .catalog-value-field input,html[data-theme="light"] .signed-result-row input,html[data-theme="light"] .tax-month-label input,html[data-theme="light"] .theme-panel select{background:#f8fafc;border-color:#cbd5e1;color:#172033}
+html[data-theme="light"] .trade-form input::placeholder,html[data-theme="light"] .form-stack input::placeholder{color:#94a3b8}
+html[data-theme="light"] .trade-form input:focus,html[data-theme="light"] .trade-form select:focus,html[data-theme="light"] .form-stack input:focus{border-color:#0284c7}
+html[data-theme="light"] th{color:#64748b;border-color:#dbe4ef}
+html[data-theme="light"] td{color:#334155;border-color:#e2e8f0}
+html[data-theme="light"] .secondary-btn{background:#e2efff;color:#075985}
+html[data-theme="light"] .user-pill{background:#fff;border-color:#d8e1ed;color:#52647d}
+html[data-theme="light"] .stats-details{background:#dbe4ef;border-color:#dbe4ef}
+html[data-theme="light"] .stats-details div{background:#fff}
+html[data-theme="light"] .stats-details span,html[data-theme="light"] .stats-line span{color:#64748b}
+html[data-theme="light"] .stats-details b{color:#172033}
+html[data-theme="light"] .catalog-item,html[data-theme="light"] .month-day,html[data-theme="light"] .candle-values span,html[data-theme="light"] .drawdown-values>div{background:#f8fafc;border-color:#dbe4ef}
+html[data-theme="light"] .catalog-item b,html[data-theme="light"] .candle-values b{color:#172033}
+html[data-theme="light"] .catalog-item small,html[data-theme="light"] .candle-values span,html[data-theme="light"] .candle-hint,html[data-theme="light"] .candle-empty,html[data-theme="light"] .candle-date,html[data-theme="light"] .drawdown-values small{color:#64748b}
+html[data-theme="light"] .candle-ranges button,html[data-theme="light"] .month-nav button{background:#f1f5f9;border-color:#cbd5e1;color:#334155}
+html[data-theme="light"] .candle-ranges button.active{background:#dbeafe;color:#075985}
+html[data-theme="light"] .candle-detail,html[data-theme="light"] .candle-trades>div{border-color:#dbe4ef}
+html[data-theme="light"] .candle-trades>div{color:#334155}
+html[data-theme="light"] .equity-panel .panel-heading>strong{color:#172033}
+html[data-theme="light"] .equity-axis{stroke:#cbd5e1}
+html[data-theme="light"] .equity-dot{stroke:#fff}
+html[data-theme="light"] .equity-foot,html[data-theme="light"] .month-legend{color:#64748b}
+html[data-theme="light"] .month-weekday{color:#64748b}
+html[data-theme="light"] .month-day{color:#334155}
+html[data-theme="light"] .month-day.win{background:#dcfce7;border-color:#86efac;color:#166534}
+html[data-theme="light"] .month-day.loss{background:#ffe4e6;border-color:#fda4af;color:#9f1239}
+html[data-theme="light"] .tax-summary>div,html[data-theme="light"] .tax-month-row{background:#f8fafc;border-color:#dbe4ef}
+html[data-theme="light"] .tax-summary span{color:#64748b}
+html[data-theme="light"] .tax-summary b{color:#172033}
+html[data-theme="light"] .tax-month-row{color:#334155}
+html[data-theme="light"] .tax-month-row.selected{background:#e0f2fe;border-color:#38bdf8}
+html[data-theme="light"] .tax-fixed-warning{background:#fff7ed;border-color:#fdba74;color:#9a3412}
+html[data-theme="light"] .risk-alert{background:#fff7ed;border-color:#fdba74;color:#9a3412}
+html[data-theme="light"] .notice{background:#fffbeb;border-color:#fcd34d;color:#92400e}
+html[data-theme="light"] .auth-wrap{background:radial-gradient(ellipse at 50% 0%,#dbeafe 0%,#f3f6fb 60%)}
+html[data-theme="light"] .auth-tabs{background:#f1f5f9}
+html[data-theme="light"] .auth-tabs button{color:#64748b}
+html[data-theme="light"] .auth-tabs button.selected{background:#dbeafe;color:#075985}
+html[data-theme="light"] .auth-card h1{color:#172033}
+html[data-theme="light"] .auth-card>.muted{color:#64748b}
+html[data-theme="light"] .password-toggle,html[data-theme="light"] .icon-btn{color:#64748b}
+html[data-theme="light"] footer{color:#64748b}
+html[data-theme="light"] .operation-preview{background:#f8fafc;border-color:#dbe4ef}
+html[data-theme="light"] .operation-preview span{color:#64748b}
+html[data-theme="light"] .operation-preview strong{color:#172033}
+html[data-theme="light"] .sign-switch button{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+html[data-theme="light"] .sign-switch .sign-gain.selected{background:#dcfce7;color:#166534}
+html[data-theme="light"] .sign-switch .sign-loss.selected{background:#ffe4e6;color:#9f1239}
+html[data-theme="light"] .sidebar nav button svg{color:inherit}
+@media(max-width:700px){.tax-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tax-summary{grid-template-columns:1fr}.tax-month-row{grid-template-columns:70px 1fr auto}.tax-month-row span:nth-of-type(2){display:none}html[data-theme="light"] .sidebar{background:#fff;border-top-color:#d8e1ed}}
+@media(max-width:380px){.tax-grid{grid-template-columns:1fr}.tax-month-row{grid-template-columns:1fr 1fr}.tax-month-row strong{grid-column:2}}
